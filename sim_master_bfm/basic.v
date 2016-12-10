@@ -22,6 +22,13 @@ module test_case (/*AUTOARG*/ ) ;
    end
 
    integer i;
+   reg [31:0] read_data;
+
+   initial begin
+      repeat(100) @(posedge `TB.aclk);
+      $display("BASIC: Timeout Failure! @ %d", $time);
+      $finish;      
+   end
    
    initial begin
       $display("AXI Master BFM Test: Basic");
@@ -34,29 +41,17 @@ module test_case (/*AUTOARG*/ ) ;
       `MASTER.write_single(32'h0000_000C, 32'hABCD_EF00, `AXI_BURST_SIZE_WORD, 4'hF);
       `MASTER.write_single(32'h0000_0010, 32'hAA55_66BB, `AXI_BURST_SIZE_WORD, 4'hF);
       repeat (10) @(posedge `TB.aclk);
-
-      if (`MEMORY[4] !== 32'hdead_beef) begin
-         $display("Memory 4 FAIL 0x%04x", `MEMORY[0]);         
-      end
-
-      if (`MEMORY[8] !== 32'h1234_5678) begin
-         $display("Memory 8 FAIL 0x%04x", `MEMORY[8]);         
-      end
-
-      if (`MEMORY[12] !== 32'hABCD_EF00) begin
-         $display("Memory 12 FAIL 0x%04x", `MEMORY[12]);         
-      end
-
-      if (`MEMORY[16] !== 32'hAA55_66BB) begin
-         $display("Memory 16 FAIL 0x%04x", `MEMORY[16]);         
-      end
+    
+      `MASTER.read_single_and_check(32'h0000_0004, 32'hdead_beef, `AXI_BURST_SIZE_WORD, 4'hF);
+      `MASTER.read_single_and_check(32'h0000_0008, 32'h1234_5678, `AXI_BURST_SIZE_WORD, 4'hF);
+      `MASTER.read_single_and_check(32'h0000_000C, 32'hABCD_EF00, `AXI_BURST_SIZE_WORD, 4'hF);
+      `MASTER.read_single_and_check(32'h0000_0010, 32'hAA55_66BB, `AXI_BURST_SIZE_WORD, 4'hF);
 
       for (i=0; i<32; i=i+1) begin
          $display("MEMORY[%d] = 0x%04x", i, `MEMORY[i]);         
       end
       
-      $display("TEST COMPLETE @ %d", $time);      
-      $finish;
+      `TB.test_passed <= 1;      
       
    end
    

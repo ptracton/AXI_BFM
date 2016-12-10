@@ -15,7 +15,7 @@ module axi_master_bfm (/*AUTOARG*/
    awid, awadr, awlen, awsize, awburst, awlock, awcache, awprot,
    awvalid, wid, wrdata, wstrb, wlast, wvalid, bid, bresp, bvalid,
    arid, araddr, arlen, arsize, arlock, arcache, arprot, arvalid,
-   rready,
+   rready, test_fail,
    // Inputs
    aclk, aresetn, awready, wready, bready, arready, rid, rdata, rresp,
    rlast, rvalid
@@ -52,7 +52,7 @@ module axi_master_bfm (/*AUTOARG*/
    input wire        wready;  // Write Ready
    
    //
-   // Write Response CHannel
+   // Write Response Channel
    //
    output reg [3:0]  bid;    // Response ID
    output reg [1:0]  bresp;  // Write Response
@@ -71,6 +71,10 @@ module axi_master_bfm (/*AUTOARG*/
    output reg [2:0]  arprot;  // Protection Type
    output reg        arvalid; // Read Address Valid   
    input wire        arready; // Read Address Ready
+
+   //
+   // Read Data Channel
+   //
    input wire [3:0]  rid;     // Read ID
    input wire [31:0] rdata;   // Read Data
    input wire [1:0]  rresp;   // Read Response
@@ -78,6 +82,12 @@ module axi_master_bfm (/*AUTOARG*/
    input wire        rvalid;  // Read Valid
    output reg        rready;  // Read Ready
 
+   //
+   // Test Signals
+   //
+   output reg        test_fail;
+   
+   
    //
    // Set all output regs to 0
    // 
@@ -110,7 +120,9 @@ module axi_master_bfm (/*AUTOARG*/
       arcache <= 0;
       arprot  <= 0;
       arvalid <= 0;
-      rready  <= 0;      
+      rready  <= 0; 
+
+      test_fail <= 0;      
    end
 
    
@@ -123,13 +135,18 @@ module axi_master_bfm (/*AUTOARG*/
       input [2:0]  size;      
       input [3:0]  strobe;
       begin
-
+         test_fail <= 0;
          //
          // Operate in a synchronous manner
          //
-         @(posedge aclk); 
+         @(posedge aclk);
+         
          $display("TASK: Write Single Addr = 0x%4x Data = 0x%4x Size = 0x%x Strobe = 0x%x Time = %d",
-                  address, data, size, strobe, $time);         
+                  address, data, size, strobe, $time);
+
+         //
+         // Address Phase
+         //
          awid    <= 0;         
          awadr   <= address;
          awvalid <= 1;
@@ -140,6 +157,10 @@ module axi_master_bfm (/*AUTOARG*/
          awcache <= 0;
          awprot  <= `AXI_PROTECTION_NORMAL;
          @(posedge awready);  //This should arrive on a clock edge!
+
+         //
+         // Data Phase
+         //
          awvalid <= 0;
          awadr  <= 'bX;         
          wid <= 0;
@@ -148,11 +169,75 @@ module axi_master_bfm (/*AUTOARG*/
          wstrb <= strobe;
          wlast <= 1;
          @(posedge wready);
+
+         //
+         // Response Phase
+         //
          wid <= 0;
          wvalid <= 0;         
          wrdata <= 'bX;
          wstrb <= 0;
          wlast <= 0;         
+         
+      end
+   endtask //
+
+   //
+   // Task: Single Read Transaction
+   //
+   task read_single;
+      input [31:0] address;
+      output [31:0] data;
+      input [2:0]   size;      
+      input [3:0]   strobe;
+      begin
+         test_fail <= 0;
+         
+         //
+         // Address Phase
+         //
+         arid <= 0;         
+         araddr <= address;
+         arvalid <= 1;
+         arlen <= `AXI_BURST_LENGTH_1;
+         arsize <= size;
+         arlock <= `AXI_LOCK_NORMAL;
+         arcache <= 0;
+         arprot <= `AXI_PROTECTION_NORMAL;
+         rready <= 0;         
+         @(posedge arready);  //This should arrive on a clock edge!
+
+         //
+         // Data Phase
+         //
+         arvalid <= 0;
+         rready <= 1;
+         @(posedge rvalid);
+         data <= rdata;
+         @(negedge rvalid);
+         rready <= 0;
+         araddr <= 'bx;
+         
+         $display("TASK: Read Single Addr Addr = 0x%4x Data = 0x%4x Size = 0x%x Strobe = 0x%x Time = %d",
+                  address, data, size, strobe, $time);         
+      end
+   endtask //
+
+   task read_single_and_check;
+      input [31:0] address;
+      input [31:0] expected_data;
+      input [2:0]  size;      
+      input [3:0]  strobe;
+      reg [31:0]   read_data;
+      begin
+         test_fail <= 0;
+         
+         read_single(address, read_data, size, strobe);
+         if (read_data !== expected_data) begin
+            $display("TASK: Read Single and Check FAIL Read = 0x%04x Expected = 0x%04x @ %d", 
+                     read_data, expected_data, $time);
+            test_fail <= 1;
+         end
          
       end
    endtask //

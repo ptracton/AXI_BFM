@@ -69,6 +69,10 @@ module axi_slave_generic (/*AUTOARG*/
    input wire [2:0]  arprot;  // Protection Type
    input wire        arvalid; // Read Address Valid
    output reg        arready; // Read Address Ready
+
+   //
+   // Read Data Channel
+   //
    output reg [3:0]  rid;     // Read ID
    output reg [31:0] rdata;   // Read Data
    output reg [1:0]  rresp;   // Read Response
@@ -77,22 +81,42 @@ module axi_slave_generic (/*AUTOARG*/
    input  wire       rready;  // Read Ready
 
    //
+   // Internal Signals
+   //
+   reg [31:0] memory [0:128];
+   integer    i;
+   
+   //
    // Write Address Channel
    //
-   reg [31:0]        write_address;   
+   reg [31:0]        write_address;  
    always @(posedge aclk)
      if (~aresetn) begin
         write_address <= 0;   
-        awready <= 1;        
+        awready <= 1;
+        write_size <= 0;        
      end else begin
         if (awvalid) begin
-           write_address <= awadr;
-           awready <= 1;           
+           write_address <= {2'b00, awadr[31:2]};
+           awready <= 1;
         end else begin
            awready <= 0;           
         end
      end // else: !if(~aresetn)
 
+   //
+   // Write Burst Counting
+   //
+   reg [2:0]         write_size;
+   always @(posedge aclk)
+     if (~aresetn) begin
+        write_size <= 0;        
+     end else begin
+        if (awvalid) begin
+           write_size <= awsize;                      
+        end
+     end
+   
    //
    // Write Data Channel
    //
@@ -130,10 +154,48 @@ module axi_slave_generic (/*AUTOARG*/
      end
 
    //
-   // Memory
+   // Read Address Channel
    //
-   reg [31:0] memory [0:128];
-   integer    i;
+   reg [31:0] read_address;   
+   always @(posedge aclk)
+     if (~aresetn) begin
+        read_address <= 0;  
+        arready <= 0; 
+        rvalid <= 0;        
+     end else begin
+        if (arvalid) begin
+           read_address <= {2'b00, araddr[31:2]};           
+           arready <= 1;
+           rvalid <= 1;           
+        end else begin
+           rvalid <= 0;           
+           arready <= 0;           
+        end
+     end // else: !if(~aresetn)   
+   
+   //
+   // Read Data Channel
+   //
+   always @(posedge aclk)
+     if (~aresetn) begin
+        rdata <= 0;
+        rvalid <= 0;
+        rresp <= `AXI_RESPONSE_OKAY;   
+        rlast <= 0;        
+     end else begin
+        if (rready) begin
+           rdata <= memory[read_address];
+           rvalid <= 1;           
+        end else begin
+           rdata <= 0;
+           rvalid <= 0;                      
+        end
+     end
+
+   
+   //
+   // Memory Operations
+   //
    
    // Memory Write
    always @(posedge aclk) begin

@@ -32,6 +32,8 @@ module testbench_axi_master_bfm (/*AUTOARG*/) ;
    end
 
    /*AUTOREG*/
+   reg test_passed;
+   
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
    wire [31:0]          araddr;                 // From master of axi_master_bfm.v
@@ -62,6 +64,7 @@ module testbench_axi_master_bfm (/*AUTOARG*/) ;
    wire                 rready;                 // From master of axi_master_bfm.v
    wire [1:0]           rresp;                  // From slave of axi_slave_generic.v
    wire                 rvalid;                 // From slave of axi_slave_generic.v
+   wire                 test_fail;              // From master of axi_master_bfm.v
    wire [3:0]           wid;                    // From master of axi_master_bfm.v
    wire                 wlast;                  // From master of axi_master_bfm.v
    wire [31:0]          wrdata;                 // From master of axi_master_bfm.v
@@ -98,6 +101,7 @@ module testbench_axi_master_bfm (/*AUTOARG*/) ;
                          .arprot                (arprot[2:0]),
                          .arvalid               (arvalid),
                          .rready                (rready),
+                         .test_fail             (test_fail),
                          // Inputs
                          .aclk                  (aclk),
                          .aresetn               (aresetn),
@@ -154,6 +158,19 @@ module testbench_axi_master_bfm (/*AUTOARG*/) ;
    
 
    test_case test();
-   
+   initial begin
+      @(posedge test_fail);      
+      $display("TEST FAIL @ %d", $time);
+      repeat (10) @(posedge aclk);
+      $finish;            
+   end
+
+   initial begin
+      test_passed <= 0;      
+      @(posedge test_passed);
+      $display("TEST PASSED: @ %d", $time);      
+      repeat (10) @(posedge aclk);
+      $finish;      
+   end
    
 endmodule // testbench_axi_master_bfm
