@@ -89,7 +89,8 @@ module axi_slave_generic (/*AUTOARG*/
    //
    // Write Address Channel
    //
-   reg [31:0]        write_address;  
+   reg [31:0]        write_address;
+   reg [2:0]         write_size;
    always @(posedge aclk)
      if (~aresetn) begin
         write_address <= 0;   
@@ -107,7 +108,6 @@ module axi_slave_generic (/*AUTOARG*/
    //
    // Write Burst Counting
    //
-   reg [2:0]         write_size;
    always @(posedge aclk)
      if (~aresetn) begin
         write_size <= 0;        
@@ -161,14 +161,11 @@ module axi_slave_generic (/*AUTOARG*/
      if (~aresetn) begin
         read_address <= 0;  
         arready <= 0; 
-        rvalid <= 0;        
      end else begin
         if (arvalid) begin
            read_address <= {2'b00, araddr[31:2]};           
            arready <= 1;
-           rvalid <= 1;           
         end else begin
-           rvalid <= 0;           
            arready <= 0;           
         end
      end // else: !if(~aresetn)   

@@ -17,8 +17,13 @@ module test_case (/*AUTOARG*/ ) ;
 `define MEMORY `SLAVE.memory
    
    initial begin
+`ifdef NCVERILOG
+      $shm_open("basic.shm");	  
+      $shm_probe(`TB,"MAC");      
+`else
       $dumpfile("basic.vcd");
-	  $dumpvars(0, `TB);      
+	  $dumpvars(0, `TB);
+`endif
    end
 
    integer i;

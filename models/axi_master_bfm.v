@@ -206,13 +206,14 @@ module axi_master_bfm (/*AUTOARG*/
          arprot <= `AXI_PROTECTION_NORMAL;
          rready <= 0;         
          @(posedge arready);  //This should arrive on a clock edge!
-
+         
          //
          // Data Phase
          //
          arvalid <= 0;
-         rready <= 1;
+         rready <= 1;         
          @(posedge rvalid);
+         rready <= 0;         
          data <= rdata;
          @(negedge rvalid);
          rready <= 0;

@@ -1,3 +1,7 @@
 *~
 *.vcd
 a.out
+*.log
+*.shm/
+INCA_libs/
+.simvision/
