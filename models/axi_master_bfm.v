@@ -206,7 +206,8 @@ module axi_master_bfm (/*AUTOARG*/
          arprot <= `AXI_PROTECTION_NORMAL;
          rready <= 0;         
          @(posedge arready);  //This should arrive on a clock edge!
-         
+
+
          //
          // Data Phase
          //
@@ -216,7 +217,6 @@ module axi_master_bfm (/*AUTOARG*/
          rready <= 0;         
          data <= rdata;
          @(negedge rvalid);
-         rready <= 0;
          araddr <= 'bx;
          
          $display("TASK: Read Single Addr Addr = 0x%4x Data = 0x%4x Size = 0x%x Strobe = 0x%x Time = %d",

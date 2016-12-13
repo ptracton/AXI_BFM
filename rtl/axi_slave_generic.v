@@ -91,6 +91,7 @@ module axi_slave_generic (/*AUTOARG*/
    //
    reg [31:0]        write_address;
    reg [2:0]         write_size;
+
    always @(posedge aclk)
      if (~aresetn) begin
         write_address <= 0;   
@@ -108,6 +109,7 @@ module axi_slave_generic (/*AUTOARG*/
    //
    // Write Burst Counting
    //
+
    always @(posedge aclk)
      if (~aresetn) begin
         write_size <= 0;        
